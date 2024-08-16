@@ -1,0 +1,8 @@
+bin/
+obj/
+packages/
+Properties/
+Publish/
+*.png
+.vs/
+.git/
