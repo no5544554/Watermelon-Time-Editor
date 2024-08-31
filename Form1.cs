@@ -145,8 +145,19 @@ namespace WatermelonTime2024_editor
                 Pen entityOutline = new Pen(Color.Red);
                 g.DrawRectangle(entityOutline, entity.x, entity.y, data.w, data.h);
                 Font f = new Font(FontFamily.GenericSansSerif, 8);
-                Brush fontbrush = new SolidBrush(Color.Red);
-                g.DrawString(data.name, f, fontbrush, entity.x , entity.y);
+                Brush fontbrush = new SolidBrush(Color.White);
+                Brush fontbrush2 = new SolidBrush(Color.Black);
+                
+                string displayname = data.name;
+                if (data.name == "sign")
+                {
+                    displayname += " Index: " + ((entity.x / TILE_SIZE) % 10);
+                }
+
+                SizeF stringsize = g.MeasureString(displayname, f);
+
+                g.FillRectangle(new SolidBrush(Color.FromArgb(128, Color.Black)), entity.x, entity.y, stringsize.Width, stringsize.Height);
+                g.DrawString(displayname, f, fontbrush, entity.x , entity.y);
             }
 
         }
@@ -360,8 +371,8 @@ namespace WatermelonTime2024_editor
                 EntityData data = entityData[e.id];
                 EntityData data2 = entityData[entityId];
 
-                Rectangle r1 = new Rectangle(e.x, e.y, data.w, data.h);
-                Rectangle r2 = new Rectangle(x, y, data2.w, data2.h);
+                Rectangle r1 = new Rectangle(e.x, e.y, 32, 32);
+                Rectangle r2 = new Rectangle(x, y, 32, 32);
 
                 
 
@@ -401,6 +412,11 @@ namespace WatermelonTime2024_editor
                     byte[] clearheader = new byte[32];
                     bw.Write(clearheader);
                     bw.Seek(0, SeekOrigin.Begin);
+                    bw.Write((byte)'W');
+                    bw.Write((byte)'M');
+                    bw.Write((byte)'L');
+                    bw.Write((byte)'V');
+
                     bw.Write(CurrentLevel.Width);
                     bw.Write(CurrentLevel.Height);
                     bw.Write(CurrentLevel.MusicIdx);
@@ -436,18 +452,44 @@ namespace WatermelonTime2024_editor
                         bw.Write(e.y);
                         bw.Write(e.flags);
                     }
+
+                    bw.Write((byte)'S');
+                    bw.Write((byte)'I');
+                    bw.Write((byte)'G');
+                    bw.Write((byte)'N');
+
+                    for (int i = 0; i < 10; i++)
+                    {
+                        byte[] msgBytes = new byte[128];
+                        for (int j = 0; j < CurrentLevel.signMsg[i].Length; j++)
+                        {
+                            byte[] ascii = Encoding.ASCII.GetBytes(CurrentLevel.signMsg[i]);
+                            msgBytes[j] = ascii[j];
+                        }
+
+                        bw.Write(msgBytes);
+                    }
                 }
             }
         }
 
         public void OpenAsBin(string filename)
         {
-            CurrentLevel = new Level();
-            entities.Clear();
+            
             using (var stream = File.OpenRead(filename))
             {
                 using (BinaryReader br = new BinaryReader(stream))
                 {
+
+                    byte[] wmlv = br.ReadBytes(4);
+                    if (wmlv[0] != 'W' && wmlv[1] != 'M' && wmlv[2] != 'L' && wmlv[3] != 'V')
+                    {
+                        MessageBox.Show("Level is not the correct format!", "Alert!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                        return;
+                    }
+
+
+                    CurrentLevel = new Level();
                     entities.Clear();
 
                     CurrentLevel.Width = br.ReadInt16();
@@ -481,6 +523,23 @@ namespace WatermelonTime2024_editor
 
                         entities.Add(e);
                     }
+
+                    
+
+                    // old style level compatibility
+                    if (br.BaseStream.Position != br.BaseStream.Length)
+                    {
+                        byte[] sign = br.ReadBytes(4);
+
+                        for (int i = 0; i < 10; i++)
+                        {
+                            byte[] strBytes = br.ReadBytes(128);
+
+                            CurrentLevel.signMsg[i] = System.Text.Encoding.ASCII.GetString(strBytes);
+                        }
+                    }
+
+                    
 
 
                     bindingSource.ResetBindings(false);
@@ -911,6 +970,54 @@ namespace WatermelonTime2024_editor
         private void check_Autoscroll_CheckedChanged(object sender, EventArgs e)
         {
             ;//CurrentLevel.flags |= (byte)LevelFlags.AUTOSCROLL;
+        }
+
+        private void exportBMPLevelToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ExportBMPLevel(string path)
+        {
+            Bitmap bmp = new Bitmap(CurrentLevel.Width, FIXED_HEIGHT + 1);
+            for (int x = 0; x < CurrentLevel.Width; x++)
+            {
+                bmp.SetPixel(x, 0, Color.Black);
+            }
+
+
+        }
+
+        private void signMessagesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SignMessagesForm f = new SignMessagesForm();
+
+            f.Sign0 = CurrentLevel.signMsg[0];
+            f.Sign1 = CurrentLevel.signMsg[1];
+            f.Sign2 = CurrentLevel.signMsg[2];
+            f.Sign3 = CurrentLevel.signMsg[3];
+            f.Sign4 = CurrentLevel.signMsg[4];
+            f.Sign5 = CurrentLevel.signMsg[5];
+            f.Sign6 = CurrentLevel.signMsg[6];
+            f.Sign7 = CurrentLevel.signMsg[7];
+            f.Sign8 = CurrentLevel.signMsg[8];
+            f.Sign9 = CurrentLevel.signMsg[9];
+
+
+
+            if (f.ShowDialog() == DialogResult.OK)
+            {
+                CurrentLevel.signMsg[0] = f.Sign0;
+                CurrentLevel.signMsg[1] = f.Sign1;
+                CurrentLevel.signMsg[2] = f.Sign2;
+                CurrentLevel.signMsg[3] = f.Sign3;
+                CurrentLevel.signMsg[4] = f.Sign4;
+                CurrentLevel.signMsg[5] = f.Sign5;
+                CurrentLevel.signMsg[6] = f.Sign6;
+                CurrentLevel.signMsg[7] = f.Sign7;
+                CurrentLevel.signMsg[8] = f.Sign8;
+                CurrentLevel.signMsg[9] = f.Sign9;
+            }
         }
     }
 

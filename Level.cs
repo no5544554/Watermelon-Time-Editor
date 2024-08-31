@@ -75,6 +75,7 @@ namespace WatermelonTime2024_editor
     // 0x7  -- level flags
     // 0x10 -- 
     // 0x20 -- tiles
+
     // after tiles -- OBJS
     // 4 bytes -- entity count
     // entity bytes:
@@ -82,6 +83,10 @@ namespace WatermelonTime2024_editor
     // 2 bytes -- x
     // 2 bytes -- y
     // 1 byte -- flags
+
+    // after entities -- SIGN
+    // 128 bytes per sign message, 10 each
+
     public class Level
     {
         public Tile[] tiles;
@@ -91,19 +96,26 @@ namespace WatermelonTime2024_editor
         public byte BackgroundIdx { get; set; } = 0;
         public byte TilesetIdx { get; set; } = 0;
         public byte flags = 0;
+        public string[] signMsg;
 
         public Level(short width, short height)
         {
             this.Width = width;
             this.Height = height;
             tiles = new Tile[width * height];
+            signMsg = new string[10];
+            for (int i = 0; i < 10; i++)
+            {
+                signMsg[i] = "";
+            }
         }
 
-        public Level()
+        public Level() : this(30, 15)
         {
-            this.Width = 30;
-            this.Height = 15;
-            tiles = new Tile[Width * Height];
+            //this.Width = 30;
+            //this.Height = 15;
+            //tiles = new Tile[Width * Height];
+            //signMsg = new string[10];
         }
 
 
@@ -223,6 +235,7 @@ namespace WatermelonTime2024_editor
                 music_index = MusicIdx,
                 tiles = tile_indices
             };
+
 
             return JsonSerializer.Serialize(obj).ToString();
         }
